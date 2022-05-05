@@ -21,20 +21,31 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const serviceCollection = client.db("Nextron").collection("products");
+    const productCollection = client.db("Nextron").collection("products");
 
     app.get("/product", async (req, res) => {
       const query = {};
-      const cursor = serviceCollection.find(query);
-      const services = await cursor.toArray();
-      res.send(services);
+      const cursor = productCollection.find(query);
+      const products = await cursor.toArray();
+      res.send(products);
     });
 
     app.get("/product/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const service = await serviceCollection.findOne(query);
-      res.send(service);
+      const product = await productCollection.findOne(query);
+      res.send(product);
+    });
+    app.post("/product", async (req, res) => {
+      const newProduct = req.body;
+      const result = await productCollection.insertOne(newProduct);
+      res.send(result);
+    });
+    app.delete("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
     });
   } finally {
   }
