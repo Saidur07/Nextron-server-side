@@ -50,7 +50,7 @@ async function run() {
       res.send(result);
     });
     // Update Quantity
-    app.put("/product/:id", async (req, res) => {
+    app.put("/updateproduct/:id", async (req, res) => {
       const id = req.params.id;
       const newQuantity = await req.body;
       const filter = { _id: ObjectId(id) };
