@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -17,11 +18,31 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
+// verify token function
+function verifyToken(req, res, next) {
+  //getting token from header
+  const tokenInfo = req.headers.authorization;
+  const token = tokenInfo?.split(" ")[1];
+  if (!tokenInfo) {
+    return res
+      .status(401)
+      .send({ message: "Hey! Its an Unauthorized Request" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({
+        message: "Bruhh, You are forbidden!",
+      });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 async function run() {
   try {
     await client.connect();
     const productCollection = client.db("Nextron").collection("products");
+    const myProductsCollection = client.db("Nextron").collection("myproducts");
 
     app.get("/product", async (req, res) => {
       const query = {};
@@ -68,6 +89,37 @@ async function run() {
       );
       res.send(result);
     });
+    // JWT
+    // token while logging in
+    app.post("/login", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET);
+      res.send({ token });
+    });
+    //product list, when token is verified
+    app.get("/productlist", verifyToken, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (decodedEmail === email) {
+        const products = await myProductsCollection.find({ email }).toArray();
+        res.send(products);
+      } else {
+        res.status(403).send({
+          message: "Oops! You are forbidden, bruhhhhhhh",
+        });
+      }
+    });
+    app.delete("/productlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await myProductsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.post("/addproduct", async (req, res) => {
+      const productInfo = req.body;
+      const result = await myProductsCollection.insertOne(productInfo);
+      res.send({ success: "Mission complete" });
+    });
   } finally {
   }
 }
@@ -75,7 +127,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Running Our Server");
+  res.send("Yaa! Running Our Server");
 });
 
 app.listen(port, () => {
