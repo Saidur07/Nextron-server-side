@@ -42,7 +42,7 @@ async function run() {
   try {
     await client.connect();
     const productCollection = client.db("Nextron").collection("products");
-    const myProductsCollection = client.db("Nextron").collection("myproducts");
+    // const myProductsCollection = client.db("Nextron").collection("myproducts");
 
     app.get("/product", async (req, res) => {
       const query = {};
@@ -101,7 +101,7 @@ async function run() {
       const decodedEmail = req.decoded.email;
       const email = req.query.email;
       if (decodedEmail === email) {
-        const products = await myProductsCollection.find({ email }).toArray();
+        const products = await productCollection.find({ email }).toArray();
         res.send(products);
       } else {
         res.status(403).send({
@@ -109,15 +109,9 @@ async function run() {
         });
       }
     });
-    app.delete("/productlist/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await myProductsCollection.deleteOne(query);
-      res.send(result);
-    });
     app.post("/addproduct", async (req, res) => {
       const productInfo = req.body;
-      const result = await myProductsCollection.insertOne(productInfo);
+      const result = await productCollection.insertOne(productInfo);
       res.send({ success: "Mission complete" });
     });
   } finally {
